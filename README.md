@@ -31,3 +31,9 @@ enabled.
 
 If you do not have this enabled, the files will still be accessible in the
 same directory as `triage.py`, titled `htmlout`.
+
+## Running
+
+It is recommended that you run `triage.py` via cron. The fewer pull requests a
+project has the more frequently you can run the cron job. I'd recommend
+starting with every 60 minutes (1 hour).
