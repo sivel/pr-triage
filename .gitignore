@@ -52,3 +52,6 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Project stuff
+htmlout/
+triage.yaml
