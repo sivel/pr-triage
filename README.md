@@ -2,6 +2,13 @@
 
 GitHub Pull Request Triage Assistant
 
+## Installing
+
+1. `git clone https://github.com/sivel/pr-triage.git`
+1. `cd pr-triage`
+1. `pip install -r requirements.txt`
+1. Create a `triage.yaml` configuration file as described below
+
 ## triage.yaml
 
 This file can live at `./triage.yaml`, `~/.triage.yaml`, or `/etc/triage.yaml`
@@ -51,7 +58,13 @@ for details on how to configure this.
 
 If you intend on using Rackspace CloudFiles to host the files, you will also
 need the [pyrax](https://pypi.python.org/pypi/pyrax) python module installed.
-Additionally, you will also need a valid [pyrax credentials file](https://github.com/rackspace/pyrax/blob/master/docs/getting_started.md#authenticating)
+Additionally, you will also need a valid [pyrax credentials file](https://github.com/rackspace/pyrax/blob/master/docs/getting_started.md#authenticating).
+
+#### Installing pyrax
+
+```shell
+pip install pyrax
+```
 
 ## Running
 
