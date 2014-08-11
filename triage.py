@@ -135,6 +135,7 @@ def write_html(config, files, users, merges, conflicts, multi_author):
         rendered = template.render(files=files, users=users, merges=merges,
                                    conflicts=conflicts,
                                    multi_author=multi_author,
+                                   repository=config['github_repository'],
                                    now=now, **classes)
 
         with open('htmlout/%s.html' % tmplfile, 'w+b') as f:

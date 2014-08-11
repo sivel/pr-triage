@@ -16,7 +16,7 @@
 				<li id="{{ filename }}"><strong>{{ filename }}</strong>&nbsp;<span class="text-muted">({{ pulls|length }})</span>
 					<ul>
 {% for pull in pulls %}
-						<li id="{{ pull.number }}" class="pull"><strong class="text-muted">#{{ pull.number }}</strong>&nbsp;<a href="https://github.com/ansible/ansible/pull/{{ pull.number }}">{{ pull.title }}</a>&nbsp;<span class="text-muted">(<a href="https://github.com/ansible/ansible/pulls/{{ pull.user.login }}">{{ pull.user.login }}</a>)</span></li>
+						<li id="{{ pull.number }}" class="pull"><strong class="text-muted">#{{ pull.number }}</strong>&nbsp;<a href="https://github.com/{{ repository }}/pull/{{ pull.number }}">{{ pull.title }}</a>&nbsp;<span class="text-muted">(<a href="https://github.com/{{ repository }}/pulls/{{ pull.user.login }}">{{ pull.user.login }}</a>)</span></li>
 {% endfor %}
 					</ul>
 				</li>
