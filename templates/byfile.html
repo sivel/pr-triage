@@ -13,10 +13,10 @@
 {% if files %}
 			<ul id="topul">
 {% for filename, pulls in files|dictsort %}
-				<li id="{{ filename }}"><strong>{{ filename }}</strong>&nbsp;<span class="text-muted">({{ pulls|length }})</span>
+				<li id="{{ filename }}" class="anchor"><strong>{{ filename }}</strong>&nbsp;<span class="text-muted">({{ pulls|length }})</span>
 					<ul>
 {% for pull in pulls %}
-						<li id="{{ pull.number }}" class="pull"><strong class="text-muted">#{{ pull.number }}</strong>&nbsp;<a href="https://github.com/{{ repository }}/pull/{{ pull.number }}">{{ pull.title }}</a>&nbsp;<span class="text-muted">(<a href="https://github.com/{{ repository }}/pulls/{{ pull.user.login }}">{{ pull.user.login }}</a>)</span></li>
+						<li id="{{ pull.number }}" class="pull anchor"><strong class="text-muted">#{{ pull.number }}</strong>&nbsp;<a href="https://github.com/{{ repository }}/pull/{{ pull.number }}">{{ pull.title }}</a>&nbsp;<span class="text-muted">(<a href="https://github.com/{{ repository }}/pulls/{{ pull.user.login }}">{{ pull.user.login }}</a>)</span></li>
 {% endfor %}
 					</ul>
 				</li>
