@@ -49,7 +49,7 @@ def get_config():
     raise SystemExit('Config file not found at: %s' % ', '.join(config_files))
 
 
-def scan_ansible_issues(config):
+def scan_issues(config):
     merge_commit = re.compile("Merge branch \S+ into ", flags=re.I)
 
     files = defaultdict(list)
@@ -62,29 +62,40 @@ def scan_ansible_issues(config):
                client_secret=config['github_client_secret'],
                per_page=100)
 
-    ansible = g.get_repo(config['github_repository'])
+    if not isinstance(config['github_repository'], list):
+        repos = [config['github_repository']]
+    else:
+        repos = config['github_repository']
 
-    for pull in ansible.get_pulls():
-        users[pull.user.login].append(pull)
+    for repo_name in repos:
+        repo = g.get_repo(repo_name)
 
-        if pull.mergeable is False or pull.mergeable_state == 'dirty':
-            conflicts[pull.user.login].append(pull)
+        for pull in repo.get_pulls():
+            if pull.user is None:
+                login = pull.head.user.login
+            else:
+                login = pull.user.login
 
-        for pull_file in pull.get_files():
-            files[pull_file.filename].append(pull)
+            users[login].append(pull)
 
-        authors = set()
-        for commit in pull.get_commits():
-            authors.add(commit.commit.author.email)
-            try:
-                if merge_commit.match(commit.commit.message):
-                    merges[pull.user.login].append(pull)
-                    break
-            except TypeError:
-                pass
+            if pull.mergeable is False or pull.mergeable_state == 'dirty':
+                conflicts[login].append(pull)
 
-        if len(authors) > 1:
-            multi_author[pull.user.login].append(pull)
+            for pull_file in pull.get_files():
+                files[pull_file.filename].append(pull)
+
+            authors = set()
+            for commit in pull.get_commits():
+                authors.add(commit.commit.author.email)
+                try:
+                    if merge_commit.match(commit.commit.message):
+                        merges[login].append(pull)
+                        break
+                except TypeError:
+                    pass
+
+            if len(authors) > 1:
+                multi_author[login].append(pull)
 
     usersbypulls = OrderedDict()
     for user, pulls in sorted(users.items(),
@@ -116,16 +127,6 @@ def write_html(config, files, users, merges, conflicts, multi_author):
                  'byconflict', 'bymultiauthor']
 
     for tmplfile in templates:
-        try:
-            obj = cont.get_object('%s.html' % tmplfile)
-        except:
-            pass
-        else:
-            try:
-                obj.purge()
-            except:
-                pass
-
         now = datetime.utcnow()
         classes = {}
         for t in templates:
@@ -135,7 +136,7 @@ def write_html(config, files, users, merges, conflicts, multi_author):
         rendered = template.render(files=files, users=users, merges=merges,
                                    conflicts=conflicts,
                                    multi_author=multi_author,
-                                   repository=config['github_repository'],
+                                   title=config['title'],
                                    now=now, **classes)
 
         with open('htmlout/%s.html' % tmplfile, 'w+b') as f:
@@ -148,4 +149,4 @@ def write_html(config, files, users, merges, conflicts, multi_author):
 
 
 if __name__ == '__main__':
-    write_html(*scan_ansible_issues(get_config()))
+    write_html(*scan_issues(get_config()))

@@ -5,10 +5,10 @@
 {% if conflicts %}
 			<ul>
 {% for user, pulls in conflicts|dictsort %}
-				<li id="{{ user }}" class="anchor"><strong><a href="https://github.com/{{ repository }}/pulls/{{ user }}">{{ user }}</a></strong>&nbsp;<span class="text-muted">({{ pulls|length }})</span>
+				<li id="{{ user }}" class="anchor"><strong><a href="https://github.com/{{ user }}">{{ user }}</a></strong>&nbsp;<span class="text-muted">({{ pulls|length }})</span>
 					<ul>
 {% for pull in pulls %}
-						<li id="{{ pull.number }}" class="pull anchor"><strong class="text-muted">#{{ pull.number }}</strong>&nbsp;<a href="https://github.com/{{ repository }}/pull/{{ pull.number }}">{{ pull.title }}</a></li>
+						<li id="{{ pull.base.repo.full_name }}-{{ pull.number }}" class="pull anchor"><strong class="text-muted">{{ pull.base.repo.full_name }} #{{ pull.number }}</strong>&nbsp;<a href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">{{ pull.title }}</a></li>
 {% endfor %}
 					</ul>
 				</li>
