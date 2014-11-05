@@ -2,6 +2,15 @@
 
 GitHub Pull Request Triage Assistant
 
+## About
+
+This application provides reports of various GitHub pull requests, so it's easy to identify pull requests that correspond to certain parts of an application, or that are submitted by certain authors.  It can also be used to identify pull requests 
+with merge conflicts that need revisions, so that authors can go back and resolve those conflicts.
+
+In short, it simplifies running large, very active projects that use pull requests for contribution.
+
+A demo is available at http://ansible.sivel.net
+
 ## Installing
 
 1. `git clone https://github.com/sivel/pr-triage.git`
