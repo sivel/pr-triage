@@ -55,6 +55,7 @@ def scan_issues(config):
     files = defaultdict(list)
     users = defaultdict(list)
     conflicts = defaultdict(list)
+    ci_failures = defaultdict(list)
     merges = defaultdict(list)
     multi_author = defaultdict(list)
 
@@ -81,6 +82,9 @@ def scan_issues(config):
             if pull.mergeable is False or pull.mergeable_state == 'dirty':
                 conflicts[login].append(pull)
 
+            if pull.mergeable_state == 'unstable':
+                ci_failures[login].append(pull)
+
             for pull_file in pull.get_files():
                 files[pull_file.filename].append(pull)
 
@@ -102,10 +106,12 @@ def scan_issues(config):
                               key=lambda t: len(t[-1]), reverse=True):
         usersbypulls[user] = pulls
 
-    return config, files, usersbypulls, merges, conflicts, multi_author
+    return (config, files, usersbypulls, merges, conflicts, multi_author,
+            ci_failures)
 
 
-def write_html(config, files, users, merges, conflicts, multi_author):
+def write_html(config, files, users, merges, conflicts, multi_author,
+               ci_failures):
     if config.get('use_rackspace', False):
         if not HAS_PYRAX:
             raise SystemExit('The pyrax python module is required to use '
@@ -124,7 +130,7 @@ def write_html(config, files, users, merges, conflicts, multi_author):
         os.makedirs('htmlout')
 
     templates = ['index', 'byfile', 'byuser', 'bymergecommits',
-                 'byconflict', 'bymultiauthor']
+                 'byconflict', 'bymultiauthor', 'bycifailures']
 
     for tmplfile in templates:
         now = datetime.utcnow()
@@ -136,6 +142,7 @@ def write_html(config, files, users, merges, conflicts, multi_author):
         rendered = template.render(files=files, users=users, merges=merges,
                                    conflicts=conflicts,
                                    multi_author=multi_author,
+                                   ci_failures=ci_failures,
                                    title=config['title'],
                                    now=now, **classes)
 
@@ -143,9 +150,9 @@ def write_html(config, files, users, merges, conflicts, multi_author):
             f.write(rendered)
 
         if config.get('use_rackspace', False):
-            obj = cont.upload_file('htmlout/%s.html' % tmplfile,
-                                   obj_name='%s.html' % tmplfile,
-                                   content_type='text/html')
+            cont.upload_file('htmlout/%s.html' % tmplfile,
+                             obj_name='%s.html' % tmplfile,
+                             content_type='text/html')
 
 
 if __name__ == '__main__':
