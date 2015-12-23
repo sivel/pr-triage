@@ -147,7 +147,7 @@ def write_html(config, files, users, merges, conflicts, multi_author,
                                    now=now, **classes)
 
         with open('htmlout/%s.html' % tmplfile, 'w+b') as f:
-            f.write(rendered)
+            f.write(rendered.encode('ascii', 'ignore'))
 
         if config.get('use_rackspace', False):
             cont.upload_file('htmlout/%s.html' % tmplfile,
