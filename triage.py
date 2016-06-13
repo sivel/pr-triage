@@ -73,6 +73,22 @@ def get_data_path(config):
     data_path = os.path.join(data_dir_path, data_file_name)
     return data_path
 
+def read_maintainers():
+    path_to_maintainers = {}
+    maintainer_to_paths = defaultdict(list)
+
+    with open('MAINTAINERS.txt', 'r') as f:
+        for line in f:
+            owner_space = (line.split(': ')[0]).strip()
+            maintainers_string = (line.split(': ')[-1]).strip()
+            maintainer_list = maintainers_string.split(' ')
+            path_to_maintainers[owner_space] = maintainer_list
+
+            for maintainer in maintainer_list:
+                maintainer_to_paths[maintainer].append(owner_space)
+
+    return maintainer_to_paths, path_to_maintainers
+
 def scan_issues(config):
     merge_commit = re.compile("Merge branch \S+ into ", flags=re.I)
 
@@ -83,6 +99,7 @@ def scan_issues(config):
     ci_failures = defaultdict(list)
     merges = defaultdict(list)
     multi_author = defaultdict(list)
+    prs = {}
 
     g = Github(client_id=config['github_client_id'],
                client_secret=config['github_client_secret'],
@@ -94,8 +111,7 @@ def scan_issues(config):
         log.info('Scanning repo: %s', repo_name)
         repo = g.get_repo(repo_name)
 
-        prs = repo.get_pulls()
-        for pull in prs:
+        for pull in repo.get_pulls():
             log.info('pull.id: %s', pull.id)
             if pull.user is None:
                 login = pull.head.user.login
@@ -127,6 +143,7 @@ def scan_issues(config):
             if len(authors) > 1:
                 multi_author[login].append(pull)
 
+            prs[pull.url] = pull
             log.info('Saving data snapshot')
             snapshot = [config, files, merges, conflicts, multi_author, ci_failures, prs, dirs]
             with open('data/snapshot.pickle', 'w') as f:
@@ -150,7 +167,7 @@ def scan_issues(config):
 
 
 def write_html(config, files, users, merges, conflicts, multi_author,
-               ci_failures, prs, dirs):
+               ci_failures, prs, dirs, maintainers):
     if config.get('use_rackspace', False):
         if not HAS_PYRAX:
             raise SystemExit('The pyrax python module is required to use '
@@ -169,7 +186,8 @@ def write_html(config, files, users, merges, conflicts, multi_author,
     if not os.path.isdir('htmlout'):
         os.makedirs('htmlout')
 
-    templates = ['index', 'byfile', 'bydir', 'byuser', 'bymergecommits',
+    templates = ['index', 'byfile', 'bydir', 'byuser',
+                 'bymergecommits', 'bymaintainer',
                  'byconflict', 'bymultiauthor', 'bycifailures']
 
     for tmplfile in templates:
@@ -183,6 +201,7 @@ def write_html(config, files, users, merges, conflicts, multi_author,
                                    merges=merges, conflicts=conflicts,
                                    multi_author=multi_author,
                                    ci_failures=ci_failures,
+                                   maintainers=maintainers,
                                    title=config['title'],
                                    now=now, **classes)
 
@@ -208,6 +227,22 @@ if __name__ == '__main__':
         log.info('loaded cached data')
     else:
         data = scan_issues(get_config())
+
+    maintainer_to_prs = defaultdict(list)
+
+    maintainer_to_paths, path_to_maintainers = read_maintainers()
+
+    for key, value in maintainer_to_paths.items():
+        print key, value
+
+    for maintainer, paths in maintainer_to_paths.items():
+        prs = set([])
+        for path in paths:
+            prs.update(data[1].get(path, []))
+            prs.update(data[8].get(path, []))
+        maintainer_to_prs[maintainer] = prs
+
+    data.append(maintainer_to_prs)
 
     #files = data[1]
     #pp(files)

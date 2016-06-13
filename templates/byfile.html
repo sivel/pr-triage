@@ -15,8 +15,14 @@
 {% for filename, pulls in files|dictsort %}
 				<li id="{{ filename }}" class="anchor"><strong>{{ filename }}</strong>&nbsp;<span class="text-muted">({{ pulls|length }})</span>
 					<ul>
-{% for pull in pulls %}
-						<li id="{{ pull.base.repo.full_name }}-{{ pull.number }}" class="pull anchor"><strong class="text-muted">{{ pull.base.repo.full_name }} #{{ pull.number }}</strong>&nbsp;<a href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">{{ pull.title }}</a>&nbsp;<span class="text-muted">(<a href="https://github.com/{{ pull.base.repo.full_name }}/pulls/{{ pull.user.login|default(pull.head.user.login) }}">{{ pull.user.login|default(pull.head.user.login) }}</a>)</span></li>
+{% for pull in pulls|sort(attribute='number') %}
+<li id="{{ pull.base.repo.full_name }}-{{ pull.number }}" class="pull anchor">
+    <strong class="text-muted">{{ pull.base.repo.full_name }} #{{ pull.number }}</strong>&nbsp;
+    <a href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">{{ pull.title }}</a>&nbsp;
+    <span class="text-muted">
+        (<a href="https://github.com/{{ pull.base.repo.full_name }}/pulls/{{ pull.user.login|default(pull.head.user.login) }}">{{ pull.user.login|default(pull.head.user.login) }}</a>)
+    </span>
+</li>
 {% endfor %}
 					</ul>
 				</li>
