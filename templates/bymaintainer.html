@@ -1,0 +1,60 @@
+{% extends "_base.html" %}
+{% block title %}By File - {{ super() }}{% endblock %}
+{% block extracss %}
+			.btn {
+				margin-left: 5px;
+				margin-right: 5px;
+			}
+{% endblock %}
+{% block body %}
+			<h1>Pull requests by Maintainer</h1>
+			<button type="button" class="pull-right btn btn-primary" id="pullsort">Sort by PR Count</button>
+			<button type="button" class="pull-right btn btn-primary" id="namesort">Sort by Maintainer</button>
+{% if maintainers %}
+	<ul id="topul">
+    {% for maintainer, pulls in maintainers|dictsort %}
+	    <li id="{{ maintainer }}" class="anchor">
+            <strong>{{ maintainer }}</strong>
+            &nbsp;
+        <span class="text-muted">({{ pulls|length }})</span>
+	<ul>
+
+    {% for pull in pulls|sort(attribute='number') %}
+		<li id="{{ pull.base.repo.full_name }}-{{ pull.number }}" class="pull anchor">
+        <strong class="text-muted">
+            {{ pull.base.repo.full_name }} #{{ pull.number }}
+        </strong>&nbsp;
+        <a href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">
+            {{ pull.title }}
+        </a>&nbsp;
+        <span class="text-muted">
+            (<a href="https://github.com/{{ pull.base.repo.full_name }}/pulls/{{ pull.user.login|default(pull.head.user.login) }}">
+                {{ pull.user.login|default(pull.head.user.login) }}
+            </a>)
+        </span>
+        </li>
+
+    {% endfor %}
+	</ul>
+	</li>
+{% endfor %}
+			</ul>
+{% endif %}
+{% endblock %}
+{% block extrajs %}
+		<script>
+			var countRe = /([0-9]+)/
+			$(document).ready(function() {
+				$("#pullsort").click(function() {
+					var li = $("#topul").children("li");
+					li.detach().sort(function(a, b) {
+						var aCount = countRe.exec($(a).children('span').text());
+						var bCount = countRe.exec($(b).children('span').text());
+						return (parseInt(aCount[1]) == parseInt(bCount[1])) ? 0 : (parseInt(aCount[1]) > parseInt(bCount[1])) ? -1 : 1;
+					});
+					$("#topul").append(li);
+				});
+				$("#namesort").click(function() {location.reload()});
+			});
+		</script>
+{% endblock %}
