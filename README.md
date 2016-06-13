@@ -26,6 +26,13 @@ This file can live at `./triage.yaml`, `~/.triage.yaml`, or `/etc/triage.yaml`
 ---
 # Required Configuration
 title: My PR Triage
+
+# The data_path is relative to where triage.py runs for now
+# You want to change this to a project specific path if you are
+# running triage.py against mulitple projects.
+# data_path needs to be a directory.
+data_path: 'data/'
+
 github_client_id: 1ecad3b34f7b437db6d0
 github_client_secret: 6689ba85bb024d1b97370c45f1316a16d08bba20
 github_repository:
@@ -45,6 +52,27 @@ pyrax_container: ansible-pr-triage
 You will need to [register an application](https://github.com/settings/applications/new)
 to provide API access.  The Client ID and Secret will need to be populated as
 shown in the above example.
+
+### Maintainers information
+
+By default, a MAINTAINERS.txt will be loaded and parsed as a source of maintainer info.
+
+This file is a text file. Each line has a rel path in a git repo, a ':', and a space seperated
+list of github users names of maintainers.
+
+Like:
+```
+cloud/openstack/: emonty shrews juliakreger j2sol rcarrillocruz
+cloud/rackspace/rax.py: j2sol sivel
+cloud/rackspace/rax_cbs.py: claco sivel
+cloud/rackspace/rax_cbs_attachments.py: claco sivel
+cloud/rackspace/rax_cdb.py: jails
+```
+
+And empty MAINTAINERS.txt is included.
+
+See https://github.com/ansible/ansibullbot/blob/master/MAINTAINERS-CORE.txt for an example.
+
 
 ## Hosting
 
@@ -78,6 +106,21 @@ pip install pyrax
 ```
 
 ## Running
+
+To run triage.py with the config in triage.yaml.
+
+```shell
+python triage.py
+```
+
+To run triage.py and to used a previously cached data file, use
+the '--cached' option. This will bypass downloading the github info
+and install use the offline to regenerate the html. This is mostly
+useful for testing changes to templates.
+
+```shell
+python triage.py --cached
+```
 
 It is recommended that you run `triage.py` via cron. The fewer pull requests a
 project has the more frequently you can run the cron job. I'd recommend
