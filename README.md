@@ -25,6 +25,7 @@ This file can live at `./triage.yaml`, `~/.triage.yaml`, or `/etc/triage.yaml`
 ```yaml
 ---
 # Required Configuration
+title: My PR Triage
 github_client_id: 1ecad3b34f7b437db6d0
 github_client_secret: 6689ba85bb024d1b97370c45f1316a16d08bba20
 github_repository:
