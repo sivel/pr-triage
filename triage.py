@@ -49,6 +49,20 @@ def get_config():
     raise SystemExit('Config file not found at: %s' % ', '.join(config_files))
 
 
+def path_to_namespace(filepath):
+    prefix = 'lib/ansible/modules/'
+    if filepath.startswith(prefix):
+        filepath = filepath[len(prefix):]
+    else:
+        return
+
+    parts = filepath.split('/', 2)
+    if len(parts) > 2:
+        return '/'.join(parts[0:2])
+    else:
+        return parts[0]
+
+
 def scan_issues(config):
     merge_commit = re.compile("Merge branch \S+ into ", flags=re.I)
 
@@ -106,12 +120,18 @@ def scan_issues(config):
                               key=lambda t: len(t[-1]), reverse=True):
         usersbypulls[user] = pulls
 
+    namespaces = defaultdict(set)
+    for pull_file, pulls in files.items():
+        if pull_file.startswith('lib/ansible/modules/'):
+            namespace = path_to_namespace(pull_file)
+            namespaces[namespace] |= set(pulls)
+
     return (config, files, usersbypulls, merges, conflicts, multi_author,
-            ci_failures)
+            ci_failures, namespaces)
 
 
 def write_html(config, files, users, merges, conflicts, multi_author,
-               ci_failures):
+               ci_failures, namespaces):
     if config.get('use_rackspace', False):
         if not HAS_PYRAX:
             raise SystemExit('The pyrax python module is required to use '
@@ -129,8 +149,8 @@ def write_html(config, files, users, merges, conflicts, multi_author,
     if not os.path.isdir('htmlout'):
         os.makedirs('htmlout')
 
-    templates = ['index', 'byfile', 'byuser', 'bymergecommits',
-                 'byconflict', 'bymultiauthor', 'bycifailures']
+    templates = ['index', 'byfile', 'byuser', 'bymergecommits', 'byconflict',
+                 'bymultiauthor', 'bycifailures', 'bynamespace']
 
     for tmplfile in templates:
         now = datetime.utcnow()
@@ -143,6 +163,7 @@ def write_html(config, files, users, merges, conflicts, multi_author,
                                    conflicts=conflicts,
                                    multi_author=multi_author,
                                    ci_failures=ci_failures,
+                                   namespaces=namespaces,
                                    title=config['title'],
                                    now=now, **classes)
 
