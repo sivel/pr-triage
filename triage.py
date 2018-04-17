@@ -19,7 +19,9 @@ import os
 import re
 import yaml
 import jinja2
+import urllib2
 
+from bs4 import BeautifulSoup
 from github import Github
 from datetime import datetime
 from collections import defaultdict, OrderedDict
@@ -51,10 +53,15 @@ def get_config():
 
 def scan_issues(config):
     merge_commit = re.compile("Merge branch \S+ into ", flags=re.I)
+    rejected_review = re.compile("is-rejected is-writer")
+    approved_review = re.compile("is-approved is-writer")
 
     files = defaultdict(list)
     users = defaultdict(list)
     conflicts = defaultdict(list)
+    ready = defaultdict(list)
+    rejected = defaultdict(list)
+    to_review = defaultdict(list)
     ci_failures = defaultdict(list)
     merges = defaultdict(list)
     multi_author = defaultdict(list)
@@ -88,6 +95,74 @@ def scan_issues(config):
             for pull_file in pull.get_files():
                 files[pull_file.filename].append(pull)
 
+            # Required Review Status
+            # Have to get html content for this :(
+            content = urllib2.urlopen(pull.html_url).read()
+            soup = BeautifulSoup(content, 'html.parser')
+
+            # rejected
+            rejections = soup.find_all(class_=rejected_review)
+
+            # approved
+            approvals = soup.find_all(class_=approved_review)
+
+            # Sort out of rejectors approved and whatnot
+            isrejected = False
+            isapproved = False
+            if len(rejections) > 0:
+                if len(approvals) > 0:
+                    rejsbyauthor = {}
+                    appsbyauthor = {}
+                    
+                    # find the latest rejection per author
+                    for rej in rejections:
+                        author = rej.find_all(class_="author")[0]
+                        reltime = rej('relative-time')[0]['datetime']
+                        rejsbyauthor[author] = reltime
+
+                    # find the latest approvals per author
+                    for app in approvals:
+                        author = app.find_all(class_="author")[0]
+                        reltime = app('relative-time')[0]['datetime']
+                        appsbyauthor[author] = reltime
+
+                    # If a rejection author doesn't have an approval, bad
+                    for rej in [rej for rej in rejsbyauthor if rej
+                                not in appsbyauthor.keys()]:
+                        isrejected = True
+                        rejected[login].append(pull)
+                        break
+
+                    # If a rejection has a newer approval allow it in
+                    if not isrejected:
+                        for rej in [rej for rej in rejsbyauthor if rej
+                                    in appsbyauthor.keys()]:
+                            latestapp = appsbyauthor[rej]
+                            dtrej = datetime.strptime(rejsbyauthor[rej],
+                                                      "%Y-%m-%dT%H:%M:%SZ")
+                            dtapp = datetime.strptime(rejsbyauthor[rej],
+                                                      "%Y-%m-%dT%H:%M:%SZ")
+                            if dtrej > dtapp:
+                                isrejected = True
+                                rejected[login].append(pull)
+                                break
+
+                # no approvals, any rejection is a rejection
+                else:
+                    isrejected = True
+                    rejected[login].append(pull)
+            
+            # no rejections, with approvals
+            if not isrejected and len(approvals) > 0:
+                isapproved = True
+
+            if isapproved and pull.mergeable is True and pull.mergeable_state == 'clean':
+                ready[login].append(pull)
+
+            # things that need to be looked at
+            if not isapproved and not isrejected:
+                to_review[login].append(pull)
+
             authors = set()
             for commit in pull.get_commits():
                 authors.add(commit.commit.author.email)
@@ -107,11 +182,11 @@ def scan_issues(config):
         usersbypulls[user] = pulls
 
     return (config, files, usersbypulls, merges, conflicts, multi_author,
-            ci_failures)
+            ci_failures, ready, rejected, to_review)
 
 
 def write_html(config, files, users, merges, conflicts, multi_author,
-               ci_failures):
+               ci_failures, ready, rejected, toreview):
     if config.get('use_rackspace', False):
         if not HAS_PYRAX:
             raise SystemExit('The pyrax python module is required to use '
@@ -130,7 +205,8 @@ def write_html(config, files, users, merges, conflicts, multi_author,
         os.makedirs('htmlout')
 
     templates = ['index', 'byfile', 'byuser', 'bymergecommits',
-                 'byconflict', 'bymultiauthor', 'bycifailures']
+                 'byconflict', 'bymultiauthor', 'bycifailures',
+                 'byready', 'byrejected', 'bytoreview']
 
     for tmplfile in templates:
         now = datetime.utcnow()
@@ -143,6 +219,8 @@ def write_html(config, files, users, merges, conflicts, multi_author,
                                    conflicts=conflicts,
                                    multi_author=multi_author,
                                    ci_failures=ci_failures,
+                                   ready=ready, rejected=rejected,
+                                   toreview=toreview,
                                    title=config['title'],
                                    now=now, **classes)
 

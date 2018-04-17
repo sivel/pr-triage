@@ -1,0 +1,18 @@
+{% extends "_base.html" %}
+{% block title %}By Ready to Merge - {{ super() }}{% endblock %}
+{% block body %}
+			<h1>Pull Requests Ready to Merge<span id="count"></span></h1>
+{% if ready %}
+			<ul>
+{% for user, pulls in ready|dictsort %}
+                                <li id="{{ user }}" class="anchor"><strong><a href="https://github.com/{{ user }}">{{ user }}</a></strong>&nbsp;<span class="text-muted">({{ pulls|length }})</span>
+                                        <ul>
+{% for pull in pulls %}
+						<li id="{{ pull.base.repo.full_name }}-{{ pull.number }}" class="pull anchor"><strong class="text-muted">{{pull.base.repo.full_name }} #{{ pull.number }}</strong>&nbsp;<a href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">{{ pull.title }}</a></li>
+{% endfor %}
+					</ul>
+				</li>
+{% endfor %}
+			</ul>
+{% endif %}
+{% endblock %}
