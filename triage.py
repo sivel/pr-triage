@@ -17,6 +17,8 @@
 
 import os
 import re
+import sys
+import time
 import yaml
 import jinja2
 
@@ -49,6 +51,14 @@ def get_config():
     raise SystemExit('Config file not found at: %s' % ', '.join(config_files))
 
 
+def ensure_rate_limit(g):
+    if g.rate_limiting[0] < 100:
+        r = g.get_rate_limit()
+        delta = r.core.reset - datetime.utcnow()
+        print('SLEEP: %s' % (delta.total_seconds() + 10))
+        time.sleep(delta.total_seconds() + 10)
+
+
 def scan_issues(config):
     merge_commit = re.compile("Merge branch \S+ into ", flags=re.I)
 
@@ -69,9 +79,32 @@ def scan_issues(config):
         repos = config['github_repository']
 
     for repo_name in repos:
-        repo = g.get_repo(repo_name)
+        ensure_rate_limit(g)
 
-        for pull in repo.get_pulls():
+        while 1:
+            try:
+                repo = g.get_repo(repo_name)
+            except Exception as e:
+                print('ERROR: %s' % e)
+                print('SLEEP')
+                time.sleep(5)
+            else:
+                break
+
+        print(repo)
+
+        while 1:
+            try:
+                pull_list = list(repo.get_pulls())
+            except Exception as e:
+                print('ERROR: %s' % e)
+                print('SLEEP')
+                time.sleep(5)
+            else:
+                break
+        for pull in pull_list:
+            print(pull)
+            ensure_rate_limit(g)
             if pull.user is None:
                 login = pull.head.user.login
             else:
@@ -79,17 +112,45 @@ def scan_issues(config):
 
             users[login].append(pull)
 
-            if pull.mergeable is False or pull.mergeable_state == 'dirty':
+            while 1:
+                try:
+                    mergeable = pull.mergeable
+                    mergeable_state = pull.mergeable_state
+                except Exception as e:
+                    print('ERROR: %s' % e)
+                    print('SLEEP')
+                    time.sleep(5)
+                else:
+                    break
+            if mergeable is False or mergeable_state == 'dirty':
                 conflicts[login].append(pull)
 
-            if pull.mergeable_state == 'unstable':
+            if mergeable_state == 'unstable':
                 ci_failures[login].append(pull)
 
-            for pull_file in pull.get_files():
+            while 1:
+                try:
+                    file_list = list(pull.get_files())
+                except Exception as e:
+                    print('ERROR: %s' % e)
+                    print('SLEEP')
+                    time.sleep(5)
+                else:
+                    break
+            for pull_file in file_list:
                 files[pull_file.filename].append(pull)
 
             authors = set()
-            for commit in pull.get_commits():
+            while 1:
+                try:
+                    commit_list = list(pull.get_commits())
+                except Exception as e:
+                    print('ERROR: %s' % e)
+                    print('SLEEP')
+                    time.sleep(5)
+                else:
+                    break
+            for commit in commit_list:
                 authors.add(commit.commit.author.email)
                 try:
                     if merge_commit.match(commit.commit.message):
@@ -156,4 +217,12 @@ def write_html(config, files, users, merges, conflicts, multi_author,
 
 
 if __name__ == '__main__':
-    write_html(*scan_issues(get_config()))
+    if os.path.exists('/tmp/pr-triage.lock'):
+        print('Lock exists')
+        sys.exit(0)
+    with open('/tmp/pr-triage.lock', 'w+'):
+        pass
+    try:
+        write_html(*scan_issues(get_config()))
+    finally:
+        os.unlink('/tmp/pr-triage.lock')
