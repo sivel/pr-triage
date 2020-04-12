@@ -69,8 +69,17 @@ def scan_issues(config):
     merges = defaultdict(list)
     multi_author = defaultdict(list)
 
-    g = Github(client_id=config['github_client_id'],
-               client_secret=config['github_client_secret'],
+
+    client_id = config.get('github_client_id', None)
+    client_secret = config.get('github_client_secret', None)
+    token = config.get('github_token', None)
+
+    if (not client_id and not client_secret) and (not token):
+        raise ValueError("Either both 'github_client_id' and 'github_client_secret', or 'github_token' are required in config file.")
+
+    g = Github(client_id=client_id,
+               client_secret=client_secret,
+               login_or_token=token,
                per_page=100)
 
     if not isinstance(config['github_repository'], list):
