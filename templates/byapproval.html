@@ -8,7 +8,7 @@
     <li><strong>{{ ackcnt }}</strong>&nbsp;<span>({{ pulls|length }})</span>
         <ul>
             {% for pull in pulls %}
-            <li id="{{ pull.base.repo.full_name }}-{{ pull.number }}"><strong>{{ pull.base.repo.full_name }} #{{
+            <li id="{{ pull.base.repo.full_name }}-{{ pull.number }}"><strong>#{{
                     pull.number }}</strong>&nbsp;<a
                     href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">{{ pull.title
                     }}</a>&nbsp;<span>(<a
