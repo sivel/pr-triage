@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright 2014 Matt Martz
 # All Rights Reserved.
@@ -16,7 +16,6 @@
 #    under the License.
 
 import os
-import re
 import sys
 import time
 import yaml
@@ -26,11 +25,15 @@ from github import Github
 from datetime import datetime
 from collections import defaultdict, OrderedDict
 
-try:
-    import pyrax
-    HAS_PYRAX = True
-except ImportError:
-    HAS_PYRAX = False
+
+def get_token():
+    token = os.getenv("TOKEN_GITHUB")
+    if not token:
+        token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        print("Missing GitHub token")
+        sys.exit(1)
+    return token
 
 
 def get_config():
@@ -42,7 +45,7 @@ def get_config():
     for config_file in config_files:
         try:
             with open(os.path.realpath(config_file)) as f:
-                config = yaml.load(f)
+                config = yaml.load(f, Loader=yaml.SafeLoader)
         except:
             pass
         else:
@@ -60,18 +63,14 @@ def ensure_rate_limit(g):
 
 
 def scan_issues(config):
-    merge_commit = re.compile("Merge branch \S+ into ", flags=re.I)
-
     files = defaultdict(list)
     users = defaultdict(list)
     conflicts = defaultdict(list)
-    ci_failures = defaultdict(list)
     merges = defaultdict(list)
-    multi_author = defaultdict(list)
+    multi_authors = defaultdict(list)
+    approvals = defaultdict(list)
 
-    g = Github(client_id=config['github_client_id'],
-               client_secret=config['github_client_secret'],
-               per_page=100)
+    g = Github(get_token())
 
     if not isinstance(config['github_repository'], list):
         repos = [config['github_repository']]
@@ -95,15 +94,17 @@ def scan_issues(config):
 
         while 1:
             try:
-                pull_list = list(repo.get_pulls())
+                pull_list = list(repo.get_pulls(
+                    state='open', sort='updated', direction='desc'))
             except Exception as e:
                 print('ERROR: %s' % e)
                 print('SLEEP')
                 time.sleep(5)
             else:
                 break
+
+        counter = 0
         for pull in pull_list:
-            print(pull)
             ensure_rate_limit(g)
             if pull.user is None:
                 login = pull.head.user.login
@@ -115,18 +116,14 @@ def scan_issues(config):
             while 1:
                 try:
                     mergeable = pull.mergeable
-                    mergeable_state = pull.mergeable_state
                 except Exception as e:
                     print('ERROR: %s' % e)
                     print('SLEEP')
                     time.sleep(5)
                 else:
                     break
-            if mergeable is False or mergeable_state == 'dirty':
+            if mergeable is False:
                 conflicts[login].append(pull)
-
-            if mergeable_state == 'unstable':
-                ci_failures[login].append(pull)
 
             while 1:
                 try:
@@ -137,8 +134,11 @@ def scan_issues(config):
                     time.sleep(5)
                 else:
                     break
-            for pull_file in file_list:
-                files[pull_file.filename].append(pull)
+            if len(file_list) >= 10:
+                files['* - Touches more than 10 files'].append(pull)
+            else:
+                for pull_file in file_list:
+                    files[pull_file.filename].append(pull)
 
             authors = set()
             while 1:
@@ -150,48 +150,66 @@ def scan_issues(config):
                     time.sleep(5)
                 else:
                     break
+
             for commit in commit_list:
                 authors.add(commit.commit.author.email)
+
+            for commit in commit_list:
                 try:
-                    if merge_commit.match(commit.commit.message):
+                    if len(commit.commit.parents) > 1:
                         merges[login].append(pull)
                         break
                 except TypeError:
                     pass
 
             if len(authors) > 1:
-                multi_author[login].append(pull)
+                multi_authors[login].append(pull)
+
+            while 1:
+                try:
+                    review_list = list(pull.get_reviews())
+                except Exception as e:
+                    print('ERROR: %s' % e)
+                    print('SLEEP')
+                    time.sleep(5)
+                else:
+                    break
+
+            approvers = dict()
+            for review in review_list:
+                if review.state == "APPROVED":
+                    approvers[review.user] = review
+                else:
+                    try:
+                        del approvers[review.user]
+                    except KeyError:
+                        pass
+
+            approvals[f"Approvals: {len(approvers)}"].append(pull)
+
+            counter += 1
+            if counter >= 500:
+                break
 
     usersbypulls = OrderedDict()
     for user, pulls in sorted(users.items(),
                               key=lambda t: len(t[-1]), reverse=True):
         usersbypulls[user] = pulls
 
-    return (config, files, usersbypulls, merges, conflicts, multi_author,
-            ci_failures)
+    return (config, files, usersbypulls, merges, conflicts, multi_authors, approvals)
 
 
-def write_html(config, files, users, merges, conflicts, multi_author,
-               ci_failures):
-    if config.get('use_rackspace', False):
-        if not HAS_PYRAX:
-            raise SystemExit('The pyrax python module is required to use '
-                             'Rackspace CloudFiles')
-        pyrax.set_setting('identity_type', 'rackspace')
-        credentials = os.path.expanduser(config['pyrax_credentials'])
-        pyrax.set_credential_file(credentials, region=config['pyrax_region'])
-        cf = pyrax.cloudfiles
-        cont = cf.get_container(config['pyrax_container'])
+def write_html(config, files, users, merges, conflicts, multi_authors, approvals):
 
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     loader = jinja2.FileSystemLoader('templates')
     environment = jinja2.Environment(loader=loader, trim_blocks=True)
 
-    if not os.path.isdir('htmlout'):
-        os.makedirs('htmlout')
+    if not os.path.isdir('docs'):
+        os.makedirs('docs')
 
-    templates = ['index', 'byfile', 'byuser', 'bymergecommits',
-                 'byconflict', 'bymultiauthor', 'bycifailures']
+    templates = ['index', 'byfile', 'byuser', 'bymergecommit',
+                 'byconflict', 'bymultiauthor', 'byapproval']
 
     for tmplfile in templates:
         now = datetime.utcnow()
@@ -202,18 +220,13 @@ def write_html(config, files, users, merges, conflicts, multi_author,
         template = environment.get_template('%s.html' % tmplfile)
         rendered = template.render(files=files, users=users, merges=merges,
                                    conflicts=conflicts,
-                                   multi_author=multi_author,
-                                   ci_failures=ci_failures,
+                                   multi_authors=multi_authors,
+                                   approvals=approvals,
                                    title=config['title'],
                                    now=now, **classes)
 
-        with open('htmlout/%s.html' % tmplfile, 'w+b') as f:
+        with open('docs/%s.html' % tmplfile, 'w+b') as f:
             f.write(rendered.encode('ascii', 'ignore'))
-
-        if config.get('use_rackspace', False):
-            cont.upload_file('htmlout/%s.html' % tmplfile,
-                             obj_name='%s.html' % tmplfile,
-                             content_type='text/html')
 
 
 if __name__ == '__main__':

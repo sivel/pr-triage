@@ -1,0 +1,23 @@
+{% extends "_base.html" %}
+{% block title %}By Approval - {{ super() }}{% endblock %}
+{% block body %}
+<h1>Pull Requests by Approval</h1>
+{% if files %}
+<ul>
+    {% for ackcnt, pulls in approvals|dictsort %}
+    <li><strong>{{ ackcnt }}</strong>&nbsp;<span>({{ pulls|length }})</span>
+        <ul>
+            {% for pull in pulls %}
+            <li id="{{ pull.base.repo.full_name }}-{{ pull.number }}"><strong>{{ pull.base.repo.full_name }} #{{
+                    pull.number }}</strong>&nbsp;<a
+                    href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">{{ pull.title
+                    }}</a>&nbsp;<span>(<a
+                        href="https://github.com/{{ pull.base.repo.full_name }}/pulls/{{ pull.user.login|default(pull.head.user.login) }}">{{
+                        pull.user.login|default(pull.head.user.login) }}</a>)</span></li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

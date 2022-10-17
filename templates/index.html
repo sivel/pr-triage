@@ -1,8 +1,14 @@
 {% extends "_base.html" %}
 {% block body %}
-			<div class="jumbotron">
-				<h1>{{ title }}</h1>
-				<br/>
-				<p>GitHub Pull Request Triage</p>
-			</div>
+<div>
+	<h1>{{ title }}</h1>
+	<p>Note: This site is updated <b>5</b> times a days, which means it may contain out-of-date data.</p>
+	<p>If you have some pull requests and they don't receive a merge:</p>
+	<ul>
+		<li>Post the PR on the <a href="https://discourse.nixos.org/t/prs-ready-for-review/3032">discourse post</a>.</li>
+		<li>Make sure you are requesting review from <b>active</b> committers <b>who knows what you are doing</b>.</li>
+	</ul>
+	<hr>
+	<p>Site maintained by @bobby285271</p>
+</div>
 {% endblock %}

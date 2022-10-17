@@ -1,18 +1,22 @@
 {% extends "_base.html" %}
 {% block title %}By User - {{ super() }}{% endblock %}
 {% block body %}
-			<h1>Pull Requests by User<span id="count"></span></h1>
+<h1>Pull Requests by User</h1>
 {% if users %}
-			<ul>
-{% for user, pulls in users.iteritems() %}
-				<li id="{{ user }}" class="anchor"><strong><a href="https://github.com/{{ user }}">{{ user }}</a></strong>&nbsp;<span class="text-muted">({{ pulls|length }})</span>
-					<ul>
-{% for pull in pulls %}
-						<li id="{{ pull.base.repo.full_name }}-{{ pull.number }}" class="pull anchor"><strong class="text-muted">{{ pull.base.repo.full_name }} #{{ pull.number }}</strong>&nbsp;<a href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">{{ pull.title }}</a></li>
-{% endfor %}
-					</ul>
-				</li>
-{% endfor %}
-			</ul>
+<ul>
+	{% for user, pulls in users.items() %}
+	<li id="{{ user }}"><strong><a href="https://github.com/{{ user }}">{{ user }}</a></strong>&nbsp;<span>({{
+			pulls|length }})</span>
+		<ul>
+			{% for pull in pulls %}
+			<li id="{{ pull.base.repo.full_name }}-{{ pull.number }}"><strong>{{ pull.base.repo.full_name }} #{{
+					pull.number }}</strong>&nbsp;<a
+					href="https://github.com/{{ pull.base.repo.full_name }}/pull/{{ pull.number }}">{{ pull.title }}</a>
+			</li>
+			{% endfor %}
+		</ul>
+	</li>
+	{% endfor %}
+</ul>
 {% endif %}
 {% endblock %}

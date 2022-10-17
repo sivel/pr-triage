@@ -1,78 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<title>{% block title %}{{ title }}{% endblock %}</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-		<style>
-			body {padding-top: 70px;}
-			.jumbotron {
-				margin-top: 30px;
-				text-align: center;
-			}
-			.stamp {
-				margin-right: 40px;
-			}
-			.anchor {
-				margin-top: -70px;
-				padding-top: 70px;
-			}
-{% block extracss %}{% endblock %}
-		</style>
-		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
-	</head>
-	<body>
-		<div class="navbar navbar-inverse navbar-fixed-top">
-			<span class="hidden-xs hidden-sm"><a href="https://github.com/sivel/pr-triage"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 9999;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"></a></span>
-			<div class="container">
-				<div class="navbar-header">
-					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-						<span class="icon-bar"></span>
-						<span class="icon-bar"></span>
-						<span class="icon-bar"></span>
-					</button>
-					<a class="navbar-brand" href="/">{{ title }}</a>
-				</div>
-				<div class="navbar-collapse collapse">
-					<ul class="nav navbar-nav">
-						 <li class="dropdown">
-							<a href="#" class="dropdown-toggle" data-toggle="dropdown">View By <span class="caret"></span></a>
-							<ul class="dropdown-menu" role="menu">
-								<li class="{{ byfile_classes }}">
-									<a href="byfile.html">File</a>
-								</li>
-								<li class="{{ byuser_classes }}">
-									<a href="byuser.html">User</a>
-								</li>
-								<li class="{{ bymergecommits_classes }}">
-									<a href="bymergecommits.html">Merge Commits</a>
-								</li>
-								<li class="{{ byconflict_classes }}">
-									<a href="byconflict.html">Merge Conflicts</a>
-								</li>
-								<li class="{{ bycifailures_classes }}">
-									<a href="bycifailures.html">CI Failures</a>
-								</li>
-								<li class="{{ bymultiauthor_classes }}">
-									<a href="bymultiauthor.html">Multiple Authors</a>
-								</li>
-							</ul>
-						</li>
-					</ul>
-					<p class="stamp navbar-text navbar-right">Generated on {{ now.strftime("%c") }} UTC</p>
-				</div>
-			</div>
-		</div>
-		<div class="container">
-{% block body %}{% endblock %}
-		</div>
-		<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-		<script>
-			var pulls = $(".pull")
-			$("#count").html("&nbsp;&nbsp;(" + pulls.length + ")").addClass('text-muted');
-		</script>
-{% block extrajs %}{% endblock %}
-	</body>
+
+<head>
+	<meta charset="utf-8">
+	<title>{% block title %}{{ title }}{% endblock %}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+	<div>
+		<a href="index.html">{{ title }}</a>
+	</div>
+	<div>
+		<ul>
+			<li><a href="byfile.html">Files</a></li>
+			<li><a href="byuser.html">Users</a></li>
+			<li><a href="bymergecommit.html">Merge Commits</a></li>
+			<li><a href="byconflict.html">Merge Conflicts</a></li>
+			<li><a href="bymultiauthor.html">Multiple Authors</a></li>
+			<li><a href="byapproval.html">Approvals</a></li>
+		</ul>
+		<p>Generated on {{ now.strftime("%c") }} UTC</p>
+	</div>
+	<div>
+		{% block body %}{% endblock %}
+	</div>
+	{% block extrajs %}{% endblock %}
+</body>
+
 </html>
