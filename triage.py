@@ -66,8 +66,6 @@ def scan_issues(config):
     files = defaultdict(list)
     users = defaultdict(list)
     conflicts = defaultdict(list)
-    merges = defaultdict(list)
-    multi_authors = defaultdict(list)
     approvals = defaultdict(list)
 
     g = Github(get_token())
@@ -140,31 +138,6 @@ def scan_issues(config):
                 for pull_file in file_list:
                     files[pull_file.filename].append(pull)
 
-            authors = set()
-            while 1:
-                try:
-                    commit_list = list(pull.get_commits())
-                except Exception as e:
-                    print('ERROR: %s' % e)
-                    print('SLEEP')
-                    time.sleep(5)
-                else:
-                    break
-
-            for commit in commit_list:
-                authors.add(commit.commit.author.email)
-
-            for commit in commit_list:
-                try:
-                    if len(commit.commit.parents) > 1:
-                        merges[login].append(pull)
-                        break
-                except TypeError:
-                    pass
-
-            if len(authors) > 1:
-                multi_authors[login].append(pull)
-
             while 1:
                 try:
                     review_list = list(pull.get_reviews())
@@ -196,10 +169,10 @@ def scan_issues(config):
                               key=lambda t: len(t[-1]), reverse=True):
         usersbypulls[user] = pulls
 
-    return (config, files, usersbypulls, merges, conflicts, multi_authors, approvals)
+    return (config, files, usersbypulls, conflicts, approvals)
 
 
-def write_html(config, files, users, merges, conflicts, multi_authors, approvals):
+def write_html(config, files, users, conflicts, approvals):
 
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     loader = jinja2.FileSystemLoader('templates')
@@ -218,9 +191,8 @@ def write_html(config, files, users, merges, conflicts, multi_authors, approvals
             classes['%s_classes' % t] = 'active' if tmplfile == t else ''
 
         template = environment.get_template('%s.html' % tmplfile)
-        rendered = template.render(files=files, users=users, merges=merges,
+        rendered = template.render(files=files, users=users,
                                    conflicts=conflicts,
-                                   multi_authors=multi_authors,
                                    approvals=approvals,
                                    title=config['title'],
                                    now=now, **classes)
