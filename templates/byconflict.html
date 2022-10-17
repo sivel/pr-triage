@@ -1,7 +1,7 @@
 {% extends "_base.html" %}
 {% block title %}By Conflict - {{ super() }}{% endblock %}
 {% block body %}
-<h1>Pull Requests with Merge Conflicts</h1>
+<h1>Pull Requests by Conflict</h1>
 {% if conflicts %}
 <ul>
 	{% for user, pulls in conflicts|dictsort %}
