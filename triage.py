@@ -181,8 +181,7 @@ def write_html(config, files, users, conflicts, approvals):
     if not os.path.isdir('docs'):
         os.makedirs('docs')
 
-    templates = ['index', 'byfile', 'byuser', 'bymergecommit',
-                 'byconflict', 'bymultiauthor', 'byapproval']
+    templates = ['index', 'byfile', 'byuser', 'byconflict', 'byapproval']
 
     for tmplfile in templates:
         now = datetime.utcnow()
